@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "79075758897",
+    "project_id": "pe-book",
+    "storage_bucket": "pe-book.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79075758897:android:34cac44d33affb07251610",
+        "android_client_info": {
+          "package_name": "com.example.perpustakaan_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChcFGccs6Y-9P6vVzLz1U82hrslG-wKYs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
