@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/splash_screen.dart';
-import 'firebase_options.dart'; // wajib jika pakai flutterfire configure
-import 'package:google_fonts/google_fonts.dart';
+import 'firebase_options.dart';
+import 'dashboard_admin/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(PerpustakaanApp());
+
+  runApp(const MyApp());
 }
 
-class PerpustakaanApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        textTheme:  GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        ),
-      ),
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: HomeScreen(), // ⬅️ arahkan ke sini
     );
   }
 }
+
