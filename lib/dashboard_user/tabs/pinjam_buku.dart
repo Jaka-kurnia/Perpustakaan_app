@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PinjamBukuTab extends StatefulWidget {
-  const PinjamBukuTab({super.key});
+  const PinjamBukuTab({super.key, String? nimUser});
 
   @override
   State<PinjamBukuTab> createState() => _PinjamBukuTabState();
@@ -108,7 +108,7 @@ class _PinjamBukuTabState extends State<PinjamBukuTab> {
               Expanded(
                 child: TextField(
                   controller: _kodeController,
-                  decoration: InputDecoration(hintText: "Contoh: BK001", filled: true, fillColor: Colors.grey.shade100, border: InputBorder.none),
+                  decoration: InputDecoration(hintText: "Masukkan Kode Buku", filled: true, fillColor: Colors.grey.shade100, border: InputBorder.none),
                 ),
               ),
               const SizedBox(width: 10),
