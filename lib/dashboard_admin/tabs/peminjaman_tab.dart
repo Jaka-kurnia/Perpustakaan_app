@@ -9,13 +9,75 @@ class PeminjamanTab extends StatelessWidget {
     return query.docs.isNotEmpty ? query.docs.first.data()[fieldAmbil] : "-";
   }
 
+  Future<void> _prosesStatus(BuildContext context, String id, String status) async {
+    await FirebaseFirestore.instance.collection('peminjaman').doc(id).update({'status': status});
+  }
+
+  Future<void> _prosesPengembalian(BuildContext context, String docId, Map<String, dynamic> data) async {
+    try {
+      // Hitung denda keterlambatan
+      DateTime tanggalJatuhTempo = (data['tanggal_jatuh_tempo'] as Timestamp).toDate();
+      DateTime tanggalKembali = DateTime.now();
+      int hariTerlambat = tanggalKembali.difference(tanggalJatuhTempo).inDays;
+      
+      if (hariTerlambat > 0) {
+        int dendaPerHari = 1000; // Rp 1000 per hari
+        int totalDenda = hariTerlambat * dendaPerHari;
+        
+        // Update status peminjaman dengan denda
+        await FirebaseFirestore.instance.collection('peminjaman').doc(docId).update({
+          'status': 'dikembalikan',
+          'tanggal_kembalikan': tanggalKembali,
+          'is_denda': true,
+          'total_denda': totalDenda,
+        });
+      } else {
+        // Update status peminjaman tanpa denda
+        await FirebaseFirestore.instance.collection('peminjaman').doc(docId).update({
+          'status': 'dikembalikan',
+          'tanggal_kembalikan': tanggalKembali,
+          'is_denda': false,
+          'total_denda': 0,
+        });
+      }
+
+      // Update stok buku
+      var bookQuery = await FirebaseFirestore.instance
+          .collection('books')
+          .where('kode_buku', isEqualTo: data['kode_buku'])
+          .get();
+      
+      if (bookQuery.docs.isNotEmpty) {
+        var bookDoc = bookQuery.docs.first;
+        int currentStok = bookDoc['stok'] ?? 0;
+        await bookDoc.reference.update({'stok': currentStok + 1});
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(hariTerlambat > 0 
+              ? "Buku berhasil dikembalikan. Denda: Rp ${(hariTerlambat * 1000)}"
+              : "Buku berhasil dikembalikan"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal mengembalikan buku: ${e.toString()}"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Persetujuan Peminjaman", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Text("Kelola pengajuan peminjaman buku", style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const Text("Manajemen Peminjaman", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text("Kelola persetujuan dan pengembalian buku", style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 20),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('peminjaman').orderBy('tanggal_pinjam', descending: true).snapshots(),
@@ -44,8 +106,12 @@ class PeminjamanTab extends StatelessWidget {
                       DataCell(_statusBadge(data['status'])),
                       DataCell(Row(
                         children: [
-                          IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _prosesStatus(doc.id, "dipinjam")),
-                          IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _prosesStatus(doc.id, "ditolak")),
+                          if (data['status'] == 'pending')
+                            IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: () => _prosesStatus(context, doc.id, "dipinjam")),
+                          if (data['status'] == 'pending')
+                            IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => _prosesStatus(context, doc.id, "ditolak")),
+                          if (data['status'] == 'dipinjam')
+                            IconButton(icon: const Icon(Icons.assignment_return, color: Colors.blue), onPressed: () => _prosesPengembalian(context, doc.id, data)),
                         ],
                       )),
                     ]);
@@ -60,14 +126,28 @@ class PeminjamanTab extends StatelessWidget {
   }
 
   Widget _statusBadge(String status) {
+    Color color;
+    switch (status) {
+      case "pending":
+        color = Colors.grey;
+        break;
+      case "dipinjam":
+        color = Colors.blue;
+        break;
+      case "ditolak":
+        color = Colors.red;
+        break;
+      case "dikembalikan":
+        color = Colors.green;
+        break;
+      default:
+        color = Colors.grey;
+    }
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: status == "pending" ? Colors.grey : Colors.blue, borderRadius: BorderRadius.circular(5)),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
       child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10)),
     );
-  }
-
-  Future<void> _prosesStatus(String id, String status) async {
-    await FirebaseFirestore.instance.collection('peminjaman').doc(id).update({'status': status});
   }
 }
