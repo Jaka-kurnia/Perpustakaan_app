@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Pindah halaman setelah 3 detik
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, AppRoutes.userHome);
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
     });
   }
 
