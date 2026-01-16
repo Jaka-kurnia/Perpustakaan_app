@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class StatCard extends StatelessWidget {
   final String title;
   final String value;
+  final String subtitle; // Tambahan untuk teks di bawah angka
   final Color color;
   final IconData icon;
 
@@ -10,6 +11,7 @@ class StatCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
+    required this.subtitle,
     required this.color,
     required this.icon,
   });
@@ -19,14 +21,13 @@ class StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.1), width: 1),
+        color: color, // Menggunakan warna solid sesuai gambar
+        borderRadius: BorderRadius.circular(20), // Border lebih membulat
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: color.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -34,34 +35,40 @@ class StatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 12,
+              color: Colors.white70,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black54,
             ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28, // Angka lebih besar
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(icon, size: 14, color: Colors.white70),
+                  const SizedBox(width: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
