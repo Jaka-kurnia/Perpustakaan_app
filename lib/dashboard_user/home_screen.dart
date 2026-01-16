@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:perpustakaan_app/dashboard_admin/tabs/denda_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/katalog_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
-import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
+import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas_user_tab.dart';
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'tabs/peminjaman_saya.dart';
+import 'tabs/perpanjangan_user_tab.dart';
+import 'tabs/kunjungan_user_tab.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/menu_chip.dart';
 
@@ -39,11 +41,15 @@ class _HomeScreenState extends State<HomeScreen> {
       case "Denda":
         return const DendaTab();
       case "Surat Bebas":
-        return const SuratBebasTab();
+        return SuratBebasUserTab();
       case "Pinjam Buku":
         return const PinjamBukuTab();
       case "Katalog":
         return const KatalogTab();
+      case "Perpanjangan":
+        return const PerpanjanganUserTab();
+      case "Kunjungan":
+        return const KunjunganUserTab();
       default:
         return const SizedBox();
     }
@@ -148,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
-                  children: ["Katalog", "Pinjam Buku", "Peminjaman Saya", "Denda", "Surat Bebas"]
+                  children: ["Katalog", "Pinjam Buku", "Peminjaman Saya", "Perpanjangan", "Kunjungan", "Denda", "Surat Bebas"]
                       .map((menu) => Padding(
                             padding: const EdgeInsets.only(right: 10),
                             child: MenuChip(
