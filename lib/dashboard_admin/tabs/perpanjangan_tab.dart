@@ -11,13 +11,21 @@ class PerpanjanganTab extends StatelessWidget {
     String value,
     String fieldAmbil,
   ) async {
-    final q = await FirebaseFirestore.instance
-        .collection(collection)
-        .where(fieldCari, isEqualTo: value)
-        .limit(1)
-        .get();
+    try {
+      final q = await FirebaseFirestore.instance
+          .collection(collection)
+          .where(fieldCari, isEqualTo: value)
+          .limit(1)
+          .get();
 
-    return q.docs.isNotEmpty ? q.docs.first[fieldAmbil] : "-";
+      if (q.docs.isNotEmpty) {
+        final data = q.docs.first.data() as Map<String, dynamic>?;
+        return data?[fieldAmbil]?.toString() ?? "-";
+      }
+      return "-";
+    } catch (e) {
+      return "-";
+    }
   }
 
   Future<void> _proses(
@@ -44,12 +52,14 @@ class PerpanjanganTab extends StatelessWidget {
             .collection('peminjaman')
             .doc(peminjamanId);
 
-        final oldDate =
-            (await peminjamanRef.get())['tanggal_jatuh_tempo'] as Timestamp;
+        final peminjamanDoc = await peminjamanRef.get();
+        final peminjamanData = peminjamanDoc.data() as Map<String, dynamic>;
+        final oldDate = peminjamanData['tanggal_jatuh_tempo'] as Timestamp;
 
         await peminjamanRef.update({
           'tanggal_jatuh_tempo':
               oldDate.toDate().add(const Duration(days: 7)),
+          'status': 'dipinjam', // Kembalikan status dari 'diperpanjang' ke 'dipinjam'
         });
       }
 
@@ -72,7 +82,6 @@ class PerpanjanganTab extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('perpanjangan')
-          .where('status', isEqualTo: 'pending')
           .orderBy('tanggal_ajukan', descending: true)
           .snapshots(),
       builder: (_, snap) {
@@ -127,16 +136,20 @@ class PerpanjanganTab extends StatelessWidget {
 
                 DataCell(Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.check, color: Colors.green),
-                      onPressed: () =>
-                          _dialog(context, doc.id, 'disetujui'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: () =>
-                          _dialog(context, doc.id, 'ditolak'),
-                    ),
+                    if (data['status'] == 'pending') ...[
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () =>
+                            _dialog(context, doc.id, 'disetujui'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: () =>
+                            _dialog(context, doc.id, 'ditolak'),
+                      ),
+                    ],
+                    if (data['status'] != 'pending')
+                      const Icon(Icons.check_circle, color: Colors.grey),
                   ],
                 )),
               ]);
