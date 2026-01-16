@@ -5,6 +5,7 @@ import '../dashboard_admin/home_screen.dart' as admin;
 import '../dashboard_user/home_screen.dart' as user;
 import '../screens/book/book_list_screen.dart';
 import '../screens/users/user_list_screen.dart';
+// route names
 
 class AppRoutes {
   static const String splash = '/';
