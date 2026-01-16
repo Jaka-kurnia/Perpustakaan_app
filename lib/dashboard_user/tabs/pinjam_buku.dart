@@ -1,128 +1,143 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PinjamBukuTab extends StatelessWidget {
+class PinjamBukuTab extends StatefulWidget {
   const PinjamBukuTab({super.key});
+
+  @override
+  State<PinjamBukuTab> createState() => _PinjamBukuTabState();
+}
+
+class _PinjamBukuTabState extends State<PinjamBukuTab> {
+  final TextEditingController _kodeController = TextEditingController();
+  List<Map<String, dynamic>> _keranjang = [];
+
+  // 1. Fungsi Tambah ke Keranjang (Cek Firebase)
+  Future<void> _tambahKeKeranjang() async {
+    String kode = _kodeController.text.trim().toUpperCase();
+    if (kode.isEmpty) return;
+
+    if (_keranjang.any((item) => item['kode_buku'] == kode)) {
+      _showSnackBar("Buku sudah ada di keranjang", Colors.orange);
+      return;
+    }
+
+    var query = await FirebaseFirestore.instance
+        .collection('books')
+        .where('kode_buku', isEqualTo: kode)
+        .limit(1)
+        .get();
+
+    if (query.docs.isNotEmpty) {
+      var data = query.docs.first.data();
+      if (data['stok'] <= 0) {
+        _showSnackBar("Stok buku habis", Colors.red);
+        return;
+      }
+
+      setState(() {
+        _keranjang.add({
+          'kode_buku': data['kode_buku'],
+          'judul': data['judul'],
+        });
+        _kodeController.clear();
+      });
+    } else {
+      _showSnackBar("Kode buku tidak ditemukan", Colors.red);
+    }
+  }
+
+  // 2. Fungsi Kirim Pengajuan ke Firebase
+  Future<void> _kirimPengajuan() async {
+    if (_keranjang.isEmpty) return;
+
+    try {
+      for (var item in _keranjang) {
+        await FirebaseFirestore.instance.collection('peminjaman').add({
+          'id_user': "2024001", // Simulasi NIM User Login
+          'kode_buku': item['kode_buku'],
+          'status': "pending",
+          'tanggal_pinjam': DateTime.now().toIso8601String(),
+          'tanggal_dikembalikan': "-",
+        });
+      }
+
+      setState(() => _keranjang.clear());
+      _showSnackBar("Pengajuan berhasil dikirim!", Colors.green);
+    } catch (e) {
+      _showSnackBar("Gagal mengirim pengajuan", Colors.red);
+    }
+  }
+
+  void _showSnackBar(String msg, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: color),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Pinjam Buku",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const Text(
-          "Ajukan peminjaman buku baru",
-          style: TextStyle(fontSize: 12, color: Colors.grey),
-        ),
+        const Text("Pinjam Buku", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text("Ajukan peminjaman buku baru", style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 20),
-
-        // Menggunakan Wrap agar layout responsif (Kiri & Kanan)
         Wrap(
-          spacing: 20,
-          runSpacing: 20,
+          spacing: 20, runSpacing: 20,
           children: [
-            // --- BAGIAN KIRI: INPUT KODE BUKU ---
-            Container(
-              width: 350, // Sesuaikan lebar box kiri
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Input Kode Buku", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const Text("Masukkan kode buku yang tertera di sampul buku", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 20),
-                  
-                  const Text("Kode Buku", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: "Contoh: BK001",
-                            filled: true,
-                            fillColor: Colors.grey.shade100,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.shopping_cart_outlined, size: 18, color: Colors.white),
-                        label: const Text("Tambah", style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Box Catatan
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text("Catatan:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                        SizedBox(height: 4),
-                        Text(
-                          "Pengambilan buku fisik tetap dilakukan langsung di Perpustakaan LP3I. Jangan lupa mengisi daftar kunjungan saat datang ke perpustakaan.",
-                          style: TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // --- BAGIAN KANAN: KERANJANG ---
-            Container(
-              width: 350, // Sesuaikan lebar box kanan
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Keranjang Peminjaman (0)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const Text("Buku yang akan dipinjam", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 50),
-                  
-                  const Center(
-                    child: Text(
-                      "Keranjang kosong. Tambahkan buku untuk meminjam.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                ],
-              ),
-            ),
+            _buildInputSection(),
+            _buildCartSection(),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildInputSection() {
+    return Container(
+      width: 350, padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Input Kode Buku", style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _kodeController,
+                  decoration: InputDecoration(hintText: "Contoh: BK001", filled: true, fillColor: Colors.grey.shade100, border: InputBorder.none),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(onPressed: _tambahKeKeranjang, style: ElevatedButton.styleFrom(backgroundColor: Colors.black), child: const Text("Tambah", style: TextStyle(color: Colors.white))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCartSection() {
+    return Container(
+      width: 350, padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        children: [
+          Text("Keranjang (${_keranjang.length})", style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          if (_keranjang.isEmpty) const Text("Keranjang Kosong", style: TextStyle(color: Colors.grey)),
+          ..._keranjang.asMap().entries.map((e) => ListTile(
+                title: Text(e.value['judul']),
+                subtitle: Text(e.value['kode_buku']),
+                trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => setState(() => _keranjang.removeAt(e.key))),
+              )),
+          if (_keranjang.isNotEmpty)
+            ElevatedButton(onPressed: _kirimPengajuan, style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text("Ajukan Sekarang", style: TextStyle(color: Colors.white))),
+        ],
+      ),
     );
   }
 }

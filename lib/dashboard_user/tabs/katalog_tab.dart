@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class KatalogTab extends StatelessWidget {
+class KatalogTab extends StatefulWidget {
   const KatalogTab({super.key});
+
+  @override
+  State<KatalogTab> createState() => _KatalogTabState();
+}
+
+class _KatalogTabState extends State<KatalogTab> {
+  String _searchQuery = ""; // Variabel untuk menyimpan input pencarian
 
   @override
   Widget build(BuildContext context) {
@@ -19,8 +27,13 @@ class KatalogTab extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // Search Bar (Sesuai Gambar)
+        // Search Bar (Dinamis)
         TextField(
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value.toLowerCase(); // Update query saat mengetik
+            });
+          },
           decoration: InputDecoration(
             hintText: "Cari judul, penulis, atau kode buku...",
             hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
@@ -40,47 +53,79 @@ class KatalogTab extends StatelessWidget {
         ),
         const SizedBox(height: 24),
 
-        // Tabel Katalog Buku
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 35,
-              headingTextStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+        // Tabel Katalog Buku Dinamis
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('books').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text("Tidak ada data buku"));
+            }
+
+            // Filter data secara lokal berdasarkan search query
+            var filteredDocs = snapshot.data!.docs.where((doc) {
+              var data = doc.data() as Map<String, dynamic>;
+              var judul = (data['judul'] ?? "").toString().toLowerCase();
+              var penulis = (data['penulis'] ?? "").toString().toLowerCase();
+              var kode = (data['kode_buku'] ?? "").toString().toLowerCase();
+              
+              return judul.contains(_searchQuery) || 
+                     penulis.contains(_searchQuery) || 
+                     kode.contains(_searchQuery);
+            }).toList();
+
+            return Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6)
+                ],
               ),
-              columns: const [
-                DataColumn(label: Text("Kode")),
-                DataColumn(label: Text("Judul")),
-                DataColumn(label: Text("Penulis")),
-                DataColumn(label: Text("Kategori")),
-                DataColumn(label: Text("Tersedia")),
-                DataColumn(label: Text("Status")),
-              ],
-              rows: [
-                _buildDataRow("BK001", "Pemrograman Web", "Ahmad Rizki", "Teknologi", "3", true),
-                _buildDataRow("BK002", "Basis Data", "Siti Aminah", "Teknologi", "3", true),
-                _buildDataRow("BK003", "Sistem Informasi", "Budi Santoso", "Teknologi", "0", false),
-                _buildDataRow("BK004", "Jaringan Komputer", "Dewi Lestari", "Teknologi", "5", true),
-                _buildDataRow("BK005", "Algoritma & Pemrograman", "Eko Wijaya", "Teknologi", "2", true),
-                _buildDataRow("BK006", "Manajemen Proyek", "Fitri Handayani", "Manajemen", "5", true),
-                _buildDataRow("BK007", "Akuntansi Dasar", "Hendra Gunawan", "Ekonomi", "3", true),
-                _buildDataRow("BK008", "Pemasaran Digital", "Indah Permata", "Bisnis", "1", true),
-              ],
-            ),
-          ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columnSpacing: 35,
+                  headingTextStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  columns: const [
+                    DataColumn(label: Text("Kode")),
+                    DataColumn(label: Text("Judul")),
+                    DataColumn(label: Text("Penulis")),
+                    DataColumn(label: Text("Kategori")),
+                    DataColumn(label: Text("Tersedia")),
+                    DataColumn(label: Text("Status")),
+                  ],
+                  rows: filteredDocs.map((doc) {
+                    var data = doc.data() as Map<String, dynamic>;
+                    int stok = data['stok'] ?? 0;
+                    bool isAvailable = stok > 0;
+
+                    return _buildDataRow(
+                      data['kode_buku'] ?? "-",
+                      data['judul'] ?? "-",
+                      data['penulis'] ?? "-",
+                      data['kategori'] ?? "Umum",
+                      stok.toString(),
+                      isAvailable,
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
   }
 
-  // Helper untuk membuat baris data dengan Label Status
+  // Helper untuk membuat baris data dengan Label Status sesuai desain
   DataRow _buildDataRow(String kode, String judul, String penulis, String kategori, String stok, bool isAvailable) {
     return DataRow(cells: [
       DataCell(Text(kode, style: const TextStyle(fontWeight: FontWeight.bold))),

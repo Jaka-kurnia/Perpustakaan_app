@@ -3,31 +3,38 @@ import 'package:flutter/material.dart';
 class MenuChip extends StatelessWidget {
   final String title;
   final bool isActive;
-  final VoidCallback onTap; // Ditambahkan agar bisa diklik
+  final VoidCallback onTap;
 
   const MenuChip({
     super.key,
     required this.title,
+    required this.isActive,
     required this.onTap,
-    this.isActive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? Colors.black : Colors.grey[300], // Hitam jika aktif
-          borderRadius: BorderRadius.circular(20),
+          color: isActive ? Colors.black : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive ? Colors.black : Colors.grey.shade300,
+          ),
+          boxShadow: isActive
+              ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))]
+              : [],
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isActive ? Colors.white : Colors.black, // Putih jika aktif
+            color: isActive ? Colors.white : Colors.grey.shade600,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
           ),
         ),
       ),
