@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:perpustakaan_app/dashboard_admin/tabs/denda_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/katalog_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/peminjaman_saya.dart';
-import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart' hide DendaTab;
+import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart'; // Pastikan path benar
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'widgets/stat_card.dart';
@@ -26,10 +25,12 @@ class _HomeScreenState extends State<HomeScreen> {
     String currentNim = nimUser ?? "";
     var query = FirebaseFirestore.instance.collection(collection);
     
+    // Koleksi 'books' bersifat umum (semua koleksi perpustakaan)
     if (collection == 'books') {
       return query.snapshots();
     }
     
+    // Koleksi denda/peminjaman difilter berdasarkan id_user (NIM)
     var filteredQuery = query.where('id_user', isEqualTo: currentNim);
     if (status != null) {
       filteredQuery = filteredQuery.where('status', isEqualTo: status);
@@ -37,12 +38,45 @@ class _HomeScreenState extends State<HomeScreen> {
     return filteredQuery.snapshots();
   }
 
+  // Fungsi helper untuk merender Card secara dinamis dari Firebase
+  Widget _buildStatItem(String title, String coll, Color color, IconData icon, String sub, {String? status, bool isCurrency = false}) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: getStatStream(coll, status: status),
+      builder: (context, snapshot) {
+        String displayValue = "0";
+        
+        if (snapshot.hasData) {
+          if (isCurrency) {
+            // Logika SUM (Menjumlahkan nominal denda)
+            double totalNominal = 0;
+            for (var doc in snapshot.data!.docs) {
+              var data = doc.data() as Map<String, dynamic>;
+              totalNominal += (data['jumlah'] ?? 0).toDouble();
+            }
+            displayValue = "Rp ${totalNominal.toInt()}";
+          } else {
+            // Logika COUNT (Menghitung jumlah dokumen)
+            displayValue = snapshot.data!.docs.length.toString();
+          }
+        }
+
+        return StatCard(
+          title: title,
+          value: displayValue,
+          subtitle: sub,
+          color: color,
+          icon: icon,
+        );
+      },
+    );
+  }
+
   Widget getActiveTabContent() {
     switch (activeMenu) {
       case "Peminjaman Saya": return const PeminjamanSayaTab();
-      case "Denda": return const DendaTab();
+      case "Denda": return const DendaTab(); // Gunakan tab denda user Anda
       case "Surat Bebas": return const SuratBebasTab();
-      case "Pinjam Buku": return const PinjamBukuTab();
+      case "Pinjam Buku": return PinjamBukuTab(nimUser: nimUser);;
       case "Katalog": return const KatalogTab();
       default: return const SizedBox();
     }
@@ -50,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Menangkap NIM yang dikirim dari LoginScreen
     nimUser = ModalRoute.of(context)?.settings.arguments as String?;
 
     return Scaffold(
@@ -65,6 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 30),
               const Text("Statistik Saya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
+              
+              // GRID STATISTIK DINAMIS
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -73,12 +108,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSpacing: 15,
                 childAspectRatio: 1.1,
                 children: [
-                  _buildStatItem("Total Koleksi", 'books', const Color(0xFF4CAF50), Icons.auto_stories, "Semua kategori"),
-                  _buildStatItem("Denda Aktif", 'denda', const Color(0xFFF44336), Icons.priority_high, "Segera lunasi", status: 'belum lunas'),
-                  _buildStatItem("Pending", 'peminjaman', const Color(0xFFFFB300), Icons.hourglass_top, "Verifikasi admin", status: 'pending'),
-                  _buildStatItem("Pinjaman Aktif", 'peminjaman', const Color(0xFF2196F3), Icons.check_circle_outline, "Sedang dipinjam", status: 'dipinjam'),
+                  _buildStatItem("Total Koleksi", 'books', const Color(0xFF4CAF50), Icons.auto_stories, "Buku tersedia"),
+                  _buildStatItem("Denda Aktif", 'denda', const Color(0xFFF44336), Icons.priority_high, "Total tagihan", status: 'belum lunas', isCurrency: true),
+                  _buildStatItem("Pending", 'peminjaman', const Color(0xFFFFB300), Icons.hourglass_top, "Menunggu admin", status: 'pending'),
+                  _buildStatItem("Pinjaman Aktif", 'peminjaman', const Color(0xFF2196F3), Icons.check_circle_outline, "Buku di tangan", status: 'dipinjam'),
                 ],
               ),
+              
               const SizedBox(height: 32),
               _buildMenuNav(),
               const SizedBox(height: 25),
@@ -90,7 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Widget Header yang mengambil nama User dari Firestore berdasarkan NIM
   Widget _buildHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -113,10 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('users').where('nim', isEqualTo: nimUser).snapshots(),
                   builder: (context, snapshot) {
-                    String displayName = "Loading...";
+                    String displayName = "Memuat...";
                     if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
                       var data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                      displayName = data['nama'] ?? "No Name";
+                      displayName = data['nama'] ?? "User";
                     }
                     return Text("$displayName - $nimUser", style: const TextStyle(fontSize: 12, color: Colors.blueGrey));
                   },
@@ -134,20 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Widget helper untuk StatCard agar kode lebih bersih
-  Widget _buildStatItem(String title, String coll, Color color, IconData icon, String sub, {String? status}) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: getStatStream(coll, status: status),
-      builder: (context, snapshot) {
-        int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return StatCard(title: title, value: count.toString(), subtitle: sub, color: color, icon: icon);
-      },
-    );
-  }
-
   Widget _buildMenuNav() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       child: Row(
         children: ["Katalog", "Pinjam Buku", "Peminjaman Saya", "Denda", "Surat Bebas"]
             .map((menu) => Padding(
