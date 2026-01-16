@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
     String password = _passwordController.text.trim();
 
     // LOGIKA AUTH BERDASARKAN RUTE (AppRoutes)
-    if (email == "asisyah@gmail.com" && password == "password") {
+    if (email == "admin.test" && password == "password") {
       // Navigasi ke Dashboard Admin menggunakan Named Route
       Navigator.pushReplacementNamed(context, AppRoutes.adminHome);
     } else if (email.isNotEmpty && password.isNotEmpty) {
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  hintText: "email@example.com",
+                  hintText: "Masukkan email",
                   prefixIcon: const Icon(Icons.email_outlined),
                   filled: true,
                   fillColor: Colors.grey.shade100,
@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text("Masuk", style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: const Text("Login", style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 32),
@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text("Demo Login:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blue)),
                     const SizedBox(height: 8),
                     Text(
-                      "Admin: asisyah@gmail.com / password",
+                      "Admin: admin.test / password",
                       style: TextStyle(color: Colors.blue.shade900, fontSize: 13),
                     ),
                     Text(

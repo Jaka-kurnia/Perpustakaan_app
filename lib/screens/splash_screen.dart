@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             const SizedBox(height: 8),
             const Text(
-              'Aplikasi Perpustakaan Digital',
+              'Aplikasi Perpustakaan Digital LP3I',
               style: TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 40),

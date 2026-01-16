@@ -6,6 +6,8 @@ import 'widgets/stat_card.dart';
 import 'widgets/menu_chip.dart';
 import 'tabs/buku_tab.dart';
 import 'tabs/peminjaman_tab.dart';
+// 1. TAMBAHKAN IMPORT INI
+import '../routes/app_routes.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,19 +17,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Simpan menu yang sedang aktif di state
   String activeMenu = "Buku";
 
-  // Fungsi untuk mengganti konten secara dinamis
   Widget getActiveTabContent() {
     switch (activeMenu) {
       case "Buku":
         return const BukuTab();
       case "Peminjaman":
         return const PeminjamanTab();
-        case "Perpanjangan":
+      case "Perpanjangan":
         return const PerpanjanganTab();
-        case "Denda":
+      case "Denda":
         return const DendaTab();
       case "Kunjungan":
         return const KunjunganTab();
@@ -53,7 +53,14 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              // 2. TAMBAHKAN LOGIKA NAVIGASI LOGOUT DI SINI
+              Navigator.pushNamedAndRemoveUntil(
+                context, 
+                AppRoutes.login, 
+                (route) => false,
+              );
+            },
           ),
         ],
       ),
@@ -62,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row Statistik
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -78,8 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // Tab Menu Dinamis
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -89,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           isActive: activeMenu == menu,
                           onTap: () {
                             setState(() {
-                              activeMenu = menu; // Update menu saat diklik
+                              activeMenu = menu;
                             });
                           },
                         ))
@@ -97,8 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Bagian Konten Dinamis yang berubah-ubah
             getActiveTabContent(),
           ],
         ),

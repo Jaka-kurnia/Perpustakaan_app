@@ -3,6 +3,7 @@ import 'package:perpustakaan_app/dashboard_admin/tabs/denda_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/katalog_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
+import 'package:perpustakaan_app/routes/app_routes.dart';
 // Import file tab
 import 'tabs/peminjaman_saya.dart';
 import 'widgets/stat_card.dart';
@@ -91,7 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      // Menghapus semua riwayat halaman dan kembali ke Login
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        AppRoutes.login,
+                        (route) => false,
+                      );
+                    },
                     icon: const Icon(
                       Icons.logout,
                       size: 16,
