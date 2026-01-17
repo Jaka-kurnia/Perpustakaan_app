@@ -3,88 +3,123 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class PerpanjanganUserTab extends StatefulWidget {
-  const PerpanjanganUserTab({super.key});
+  final String nimUser;
+
+  const PerpanjanganUserTab({
+    super.key,
+    required this.nimUser,
+  });
 
   @override
   State<PerpanjanganUserTab> createState() => _PerpanjanganUserTabState();
 }
 
 class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
-  final String nimUser = "2024001";
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('peminjaman')
-          .where('id_user', isEqualTo: nimUser)
+          .where('id_user', isEqualTo: widget.nimUser)
           .where('status', isEqualTo: 'dipinjam')
           .snapshots(),
-      builder: (_, snap) {
-        if (!snap.hasData) {
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snap.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(child: Text("Tidak ada buku dipinjam"));
         }
 
         return ListView(
-          children: snap.data!.docs.map((doc) {
+          children: snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final pinjam = data['tanggal_pinjam'] is Timestamp 
-                ? (data['tanggal_pinjam'] as Timestamp).toDate()
-                : DateTime.parse(data['tanggal_pinjam'].toString());
-            final tempo = data['tanggal_jatuh_tempo'] is Timestamp 
-                ? (data['tanggal_jatuh_tempo'] as Timestamp).toDate()
-                : DateTime.parse(data['tanggal_jatuh_tempo'].toString());
+
+            final String idPinjam = data['id_pinjam'];
+            final String kodeBuku = data['kode_buku'];
+
+            final DateTime tanggalPinjam =
+            (data['tanggal_pinjam'] as Timestamp).toDate();
+            final DateTime jatuhTempo =
+            (data['tanggal_jatuh_tempo'] as Timestamp).toDate();
 
             return Card(
-              margin: const EdgeInsets.all(10),
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(15),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FutureBuilder<DocumentSnapshot>(
+                    /// JUDUL BUKU
+                    FutureBuilder<QuerySnapshot>(
                       future: FirebaseFirestore.instance
                           .collection('books')
-                          .where('kode_buku',
-                              isEqualTo: data['kode_buku'])
+                          .where('kode_buku', isEqualTo: kodeBuku)
                           .limit(1)
-                          .get()
-                          .then((v) => v.docs.first),
-                      builder: (_, b) => Text(
-                        b.hasData ? b.data!['judul'] : "...",
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold),
-                      ),
+                          .get(),
+                      builder: (_, bookSnap) {
+                        if (!bookSnap.hasData ||
+                            bookSnap.data!.docs.isEmpty) {
+                          return const Text(
+                            "Judul tidak ditemukan",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold),
+                          );
+                        }
+
+                        return Text(
+                          bookSnap.data!.docs.first['judul'],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
+                        );
+                      },
                     ),
-                    Text("Kode: ${data['kode_buku']}"),
+
+                    const SizedBox(height: 6),
+                    Text("Kode Buku : $kodeBuku"),
                     Text(
-                        "Pinjam: ${DateFormat('dd-MM-yyyy').format(pinjam)}"),
+                        "Tanggal Pinjam : ${DateFormat('dd-MM-yyyy').format(tanggalPinjam)}"),
                     Text(
-                        "Jatuh Tempo: ${DateFormat('dd-MM-yyyy').format(tempo)}"),
-                    const SizedBox(height: 10),
+                        "Jatuh Tempo : ${DateFormat('dd-MM-yyyy').format(jatuhTempo)}"),
+
+                    const SizedBox(height: 12),
+
+                    /// CEK STATUS PERPANJANGAN
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('perpanjangan')
-                          .where('id_peminjaman', isEqualTo: doc.id)
+                          .where('id_pinjam', isEqualTo: idPinjam)
+                          .where('status', isEqualTo: 'pending')
                           .snapshots(),
-                      builder: (_, p) {
-                        final pending = p.hasData &&
-                            p.data!.docs.any((d) =>
-                                d['status'] == 'pending');
+                      builder: (_, perpanjanganSnap) {
+                        final bool sedangDiajukan =
+                            perpanjanganSnap.hasData &&
+                                perpanjanganSnap
+                                    .data!.docs.isNotEmpty;
 
-                        return pending
-                            ? const Text("Sedang diajukan",
-                                style:
-                                    TextStyle(color: Colors.orange))
-                            : ElevatedButton(
-                                onPressed: () =>
-                                    _ajukan(doc.id),
-                                child: const Text("Ajukan Perpanjangan"),
-                              );
+                        if (sedangDiajukan) {
+                          return const Text(
+                            "Sedang diajukan",
+                            style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w600),
+                          );
+                        }
+
+                        return SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                _ajukanPerpanjangan(idPinjam),
+                            child:
+                            const Text("Ajukan Perpanjangan"),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -97,17 +132,20 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
     );
   }
 
-  Future<void> _ajukan(String peminjamanId) async {
+  /// SUBMIT PERPANJANGAN
+  Future<void> _ajukanPerpanjangan(String idPinjam) async {
     await FirebaseFirestore.instance.collection('perpanjangan').add({
-      'id_user': nimUser,
-      'id_peminjaman': peminjamanId,
+      'id_user': widget.nimUser,
+      'id_pinjam': idPinjam,
       'tanggal_ajukan': Timestamp.now(),
       'status': 'pending',
     });
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Pengajuan berhasil"),
+        content: Text("Pengajuan perpanjangan berhasil"),
         backgroundColor: Colors.green,
       ),
     );
