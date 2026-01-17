@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/katalog_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/peminjaman_saya.dart';
-import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart'; // Pastikan path benar
+import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'widgets/stat_card.dart';
@@ -18,27 +18,26 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String activeMenu = "Katalog";
-  String? nimUser;
+  String? idUser; // Ubah dari nimUser ke idUser agar konsisten
+  String? namaUser;
 
-  // Stream data statistik yang terfilter berdasarkan NIM yang sedang login
+  // Stream data statistik yang terfilter berdasarkan ID User yang sedang login
   Stream<QuerySnapshot> getStatStream(String collection, {String? status}) {
-    String currentNim = nimUser ?? "";
+    String currentId = idUser ?? "";
     var query = FirebaseFirestore.instance.collection(collection);
     
-    // Koleksi 'books' bersifat umum (semua koleksi perpustakaan)
     if (collection == 'books') {
       return query.snapshots();
     }
     
-    // Koleksi denda/peminjaman difilter berdasarkan id_user (NIM)
-    var filteredQuery = query.where('id_user', isEqualTo: currentNim);
+    // Filter menggunakan field 'id_user' sesuai struktur database baru
+    var filteredQuery = query.where('id_user', isEqualTo: currentId);
     if (status != null) {
       filteredQuery = filteredQuery.where('status', isEqualTo: status);
     }
     return filteredQuery.snapshots();
   }
 
-  // Fungsi helper untuk merender Card secara dinamis dari Firebase
   Widget _buildStatItem(String title, String coll, Color color, IconData icon, String sub, {String? status, bool isCurrency = false}) {
     return StreamBuilder<QuerySnapshot>(
       stream: getStatStream(coll, status: status),
@@ -47,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
         
         if (snapshot.hasData) {
           if (isCurrency) {
-            // Logika SUM (Menjumlahkan nominal denda)
             double totalNominal = 0;
             for (var doc in snapshot.data!.docs) {
               var data = doc.data() as Map<String, dynamic>;
@@ -55,7 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
             }
             displayValue = "Rp ${totalNominal.toInt()}";
           } else {
-            // Logika COUNT (Menghitung jumlah dokumen)
             displayValue = snapshot.data!.docs.length.toString();
           }
         }
@@ -74,9 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget getActiveTabContent() {
     switch (activeMenu) {
       case "Peminjaman Saya": return const PeminjamanSayaTab();
-      case "Denda": return const DendaTab(); // Gunakan tab denda user Anda
+      case "Denda": return const DendaTab();
       case "Surat Bebas": return const SuratBebasTab();
-      case "Pinjam Buku": return PinjamBukuTab(nimUser: nimUser);;
+      case "Pinjam Buku": return PinjamBukuTab(nimUser: idUser); // idUser dikirim sebagai NIM
       case "Katalog": return const KatalogTab();
       default: return const SizedBox();
     }
@@ -84,7 +81,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    nimUser = ModalRoute.of(context)?.settings.arguments as String?;
+    // FIX ERROR: Menangkap argumen sebagai Map, bukan String
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      idUser = args['id_user'];
+      namaUser = args['nama'];
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -99,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const Text("Statistik Saya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
               
-              // GRID STATISTIK DINAMIS
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -145,16 +146,9 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("PI-BOOK LP3I", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('users').where('nim', isEqualTo: nimUser).snapshots(),
-                  builder: (context, snapshot) {
-                    String displayName = "Memuat...";
-                    if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-                      var data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-                      displayName = data['nama'] ?? "User";
-                    }
-                    return Text("$displayName - $nimUser", style: const TextStyle(fontSize: 12, color: Colors.blueGrey));
-                  },
+                // Langsung tampilkan namaUser yang didapat dari argumen Login
+                Text("${namaUser ?? 'User'} - ${idUser ?? ''}", 
+                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey)
                 ),
               ],
             ),
