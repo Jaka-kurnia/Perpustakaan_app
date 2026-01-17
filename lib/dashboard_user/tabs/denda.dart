@@ -44,7 +44,7 @@ class DendaTab extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Rp 2.000 per hari keterlambatan",
+                    "Rp 1.000 per hari keterlambatan",
                     style: TextStyle(color: Colors.red.shade700, fontSize: 12),
                   ),
                 ],

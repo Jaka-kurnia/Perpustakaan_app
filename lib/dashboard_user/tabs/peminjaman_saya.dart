@@ -7,21 +7,26 @@ class PeminjamanSayaTab extends StatelessWidget {
 
   // Fungsi untuk mengambil Judul Buku berdasarkan kode_buku dari koleksi 'books'
   Future<String> _getBookTitle(String kode) async {
-    var bookQuery = await FirebaseFirestore.instance
-        .collection('books')
-        .where('kode_buku', isEqualTo: kode)
-        .limit(1)
-        .get();
+    try {
+      var bookQuery = await FirebaseFirestore.instance
+          .collection('books')
+          .where('kode_buku', isEqualTo: kode)
+          .limit(1)
+          .get();
 
-    if (bookQuery.docs.isNotEmpty) {
-      return bookQuery.docs.first.data()['judul'] ?? "Buku";
+      if (bookQuery.docs.isNotEmpty) {
+        return bookQuery.docs.first.data()['judul'] ?? "Buku";
+      }
+    } catch (e) {
+      return "Gagal memuat";
     }
     return "Judul tidak ditemukan";
   }
 
-  // Fungsi untuk menghitung Jatuh Tempo (Misal: 7 hari setelah tanggal pinjam)
+  // Fungsi untuk menghitung Jatuh Tempo (7 hari setelah tanggal pinjam)
   String _calculateDueDate(String dateString) {
     try {
+      if (dateString.isEmpty) return "-";
       DateTime pinjam = DateTime.parse(dateString);
       DateTime tempo = pinjam.add(const Duration(days: 7));
       return DateFormat('dd MMM yyyy').format(tempo);
@@ -32,7 +37,7 @@ class PeminjamanSayaTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simulasi NIM user yang login (Pastikan ini sama dengan id_user saat input di PinjamBukuTab)
+    // Simulasi NIM user yang login
     const String nimLogin = "2024001"; 
 
     return Column(
@@ -100,8 +105,10 @@ class PeminjamanSayaTab extends StatelessWidget {
                       DataCell(Text(data['kode_buku'] ?? "-")),
                       // Relasi ke koleksi Books untuk ambil judul
                       DataCell(FutureBuilder<String>(
-                        future: _getBookTitle(data['kode_buku']),
-                        builder: (context, res) => Text(res.data ?? "Loading..."),
+                        future: _getBookTitle(data['kode_buku'] ?? ""),
+                        builder: (context, res) {
+                          return Text(res.data ?? "Loading...");
+                        },
                       )),
                       DataCell(Text(tanggalPinjam != "" 
                           ? DateFormat('dd MMM yyyy').format(DateTime.parse(tanggalPinjam)) 
@@ -126,7 +133,6 @@ class PeminjamanSayaTab extends StatelessWidget {
       ],
     );
   }
-
 
   Widget _buildEmptyState() {
     return Container(
@@ -168,6 +174,10 @@ class PeminjamanSayaTab extends StatelessWidget {
   }
 
   Future<void> _batalkanPeminjaman(String docId) async {
-    await FirebaseFirestore.instance.collection('peminjaman').doc(docId).delete();
+    try {
+      await FirebaseFirestore.instance.collection('peminjaman').doc(docId).delete();
+    } catch (e) {
+      debugPrint("Gagal membatalkan: $e");
+    }
   }
 }
