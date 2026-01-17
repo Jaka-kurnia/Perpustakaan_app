@@ -5,21 +5,32 @@ import 'package:intl/intl.dart';
 class PerpanjanganTab extends StatelessWidget {
   const PerpanjanganTab({super.key});
 
+  // ================= GET FIELD GENERIC =================
   Future<String> _getField(
     String collection,
     String fieldCari,
     String value,
     String fieldAmbil,
   ) async {
-    final q = await FirebaseFirestore.instance
-        .collection(collection)
-        .where(fieldCari, isEqualTo: value)
-        .limit(1)
-        .get();
+    try {
+      final q = await FirebaseFirestore.instance
+          .collection(collection)
+          .where(fieldCari, isEqualTo: value)
+          .limit(1)
+          .get();
 
-    return q.docs.isNotEmpty ? q.docs.first[fieldAmbil] : "-";
+      if (q.docs.isNotEmpty) {
+        final data = q.docs.first.data();
+        final result = data[fieldAmbil];
+        return result != null ? result.toString() : "-";
+      }
+      return "-";
+    } catch (_) {
+      return "-";
+    }
   }
 
+  // ================= PROSES PERPANJANGAN =================
   Future<void> _proses(
     BuildContext context,
     String docId,
@@ -33,23 +44,34 @@ class PerpanjanganTab extends StatelessWidget {
       await perpanjanganRef.update({
         'status': status,
         'tanggal_proses': Timestamp.now(),
-        if (catatan != null) 'catatan': catatan,
+        if (catatan != null && catatan.isNotEmpty) 'catatan': catatan,
       });
 
       if (status == 'disetujui') {
-        final perpanjanganData = (await perpanjanganRef.get()).data()!;
+        final perpanjanganSnap = await perpanjanganRef.get();
+        final perpanjanganData = perpanjanganSnap.data();
+
+        if (perpanjanganData == null) return;
+
         final peminjamanId = perpanjanganData['id_peminjaman'];
+        if (peminjamanId == null) return;
 
         final peminjamanRef = FirebaseFirestore.instance
             .collection('peminjaman')
             .doc(peminjamanId);
 
-        final oldDate =
-            (await peminjamanRef.get())['tanggal_jatuh_tempo'] as Timestamp;
+        final peminjamanSnap = await peminjamanRef.get();
+        final peminjamanData = peminjamanSnap.data();
+
+        if (peminjamanData == null) return;
+
+        final oldTimestamp = peminjamanData['tanggal_jatuh_tempo'];
+        if (oldTimestamp is! Timestamp) return;
 
         await peminjamanRef.update({
           'tanggal_jatuh_tempo':
-              oldDate.toDate().add(const Duration(days: 7)),
+              oldTimestamp.toDate().add(const Duration(days: 7)),
+          'status': 'dipinjam',
         });
       }
 
@@ -62,25 +84,28 @@ class PerpanjanganTab extends StatelessWidget {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('perpanjangan')
-          .where('status', isEqualTo: 'pending')
           .orderBy('tanggal_ajukan', descending: true)
           .snapshots(),
       builder: (_, snap) {
-        if (!snap.hasData) {
+        if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snap.data!.docs.isEmpty) {
+        if (!snap.hasData || snap.data!.docs.isEmpty) {
           return const Center(child: Text("Tidak ada pengajuan"));
         }
 
@@ -97,48 +122,64 @@ class PerpanjanganTab extends StatelessWidget {
             ],
             rows: snap.data!.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final tanggal =
-                  (data['tanggal_ajukan'] as Timestamp).toDate();
+
+              final nim = data['id_user']?.toString() ?? "-";
+              final status = data['status']?.toString() ?? "-";
+
+              DateTime tanggal = DateTime.now();
+              if (data['tanggal_ajukan'] is Timestamp) {
+                tanggal = (data['tanggal_ajukan'] as Timestamp).toDate();
+              }
 
               return DataRow(cells: [
-                DataCell(Text(data['id_user'])),
+                DataCell(Text(nim)),
 
-                DataCell(FutureBuilder<String>(
-                  future: _getField(
-                      'users', 'nim', data['id_user'], 'nama'),
-                  builder: (_, s) => Text(s.data ?? "..."),
-                )),
+                DataCell(
+                  FutureBuilder<String>(
+                    future: _getField('users', 'nim', nim, 'nama'),
+                    builder: (_, s) => Text(s.data ?? "..."),
+                  ),
+                ),
 
-                DataCell(FutureBuilder<String>(
-                  future: _getField(
-                      'peminjaman', 'id', data['id_peminjaman'], 'kode_buku'),
-                  builder: (_, kode) {
-                    if (!kode.hasData) return const Text("...");
-                    return FutureBuilder<String>(
-                      future: _getField(
-                          'books', 'kode_buku', kode.data!, 'judul'),
-                      builder: (_, j) => Text(j.data ?? "..."),
-                    );
-                  },
-                )),
+                DataCell(
+                  FutureBuilder<String>(
+                    future: _getField(
+                        'peminjaman', 'id', data['id_peminjaman'] ?? "", 'kode_buku'),
+                    builder: (_, kode) {
+                      if (!kode.hasData || kode.data == "-") {
+                        return const Text("-");
+                      }
+                      return FutureBuilder<String>(
+                        future: _getField(
+                            'books', 'kode_buku', kode.data!, 'judul'),
+                        builder: (_, j) => Text(j.data ?? "-"),
+                      );
+                    },
+                  ),
+                ),
 
                 DataCell(Text(DateFormat('dd-MM-yyyy').format(tanggal))),
-                DataCell(_badge(data['status'])),
+                DataCell(_badge(status)),
 
-                DataCell(Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check, color: Colors.green),
-                      onPressed: () =>
-                          _dialog(context, doc.id, 'disetujui'),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      onPressed: () =>
-                          _dialog(context, doc.id, 'ditolak'),
-                    ),
-                  ],
-                )),
+                DataCell(
+                  Row(
+                    children: [
+                      if (status == 'pending') ...[
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green),
+                          onPressed: () =>
+                              _dialog(context, doc.id, 'disetujui'),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () =>
+                              _dialog(context, doc.id, 'ditolak'),
+                        ),
+                      ] else
+                        const Icon(Icons.check_circle, color: Colors.grey),
+                    ],
+                  ),
+                ),
               ]);
             }).toList(),
           ),
@@ -147,6 +188,7 @@ class PerpanjanganTab extends StatelessWidget {
     );
   }
 
+  // ================= BADGE =================
   Widget _badge(String status) {
     final color = status == 'pending'
         ? Colors.orange
@@ -156,32 +198,50 @@ class PerpanjanganTab extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(6),
-      decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: Text(status.toUpperCase(),
-          style: const TextStyle(color: Colors.white, fontSize: 10)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: const TextStyle(color: Colors.white, fontSize: 10),
+      ),
     );
   }
 
+  // ================= DIALOG =================
   void _dialog(BuildContext context, String id, String status) {
     final c = TextEditingController();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(status == 'disetujui'
-            ? "Setujui Perpanjangan"
-            : "Tolak Perpanjangan"),
+        title: Text(
+          status == 'disetujui'
+              ? "Setujui Perpanjangan"
+              : "Tolak Perpanjangan",
+        ),
         content: status == 'ditolak'
-            ? TextField(controller: c, decoration: const InputDecoration(labelText: "Catatan"))
+            ? TextField(
+                controller: c,
+                decoration:
+                    const InputDecoration(labelText: "Catatan"),
+              )
             : null,
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _proses(context, id, status,
-                  catatan: status == 'ditolak' ? c.text : null);
+              _proses(
+                context,
+                id,
+                status,
+                catatan: status == 'ditolak' ? c.text : null,
+              );
             },
             child: const Text("Simpan"),
           ),
