@@ -101,7 +101,7 @@ class PeminjamanTab extends StatelessWidget {
                     var data = doc.data() as Map<String, dynamic>;
                     return DataRow(cells: [
                       DataCell(Text(data['id_user'])),
-                      DataCell(FutureBuilder(future: _getRelasiData('users', 'nim', data['id_user'], 'nama'), builder: (context, s) => Text(s.data ?? "..."))),
+                      DataCell(FutureBuilder(future: _getRelasiData('users', 'id_user', data['id_user'], 'nama'), builder: (context, s) => Text(s.data ?? "..."))),
                       DataCell(FutureBuilder(future: _getRelasiData('books', 'kode_buku', data['kode_buku'], 'judul'), builder: (context, s) => Text(s.data ?? "..."))),
                       DataCell(_statusBadge(data['status'])),
                       DataCell(Row(
