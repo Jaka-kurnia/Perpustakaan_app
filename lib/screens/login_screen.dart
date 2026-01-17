@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../routes/app_routes.dart';
 
+
+// Untuk Login menggunakan nim sebagai user dan password sama dengan nim
+//nim : 202402018
+// password : 202402018
+
+
+// Untuk Admin menggunakan nim
+// nim : 202402009
+// password : 202402009
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -98,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
             height: screenHeight * 0.45,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                colors: [Color.fromARGB(255, 6, 7, 59), Color(0xFF004369)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -214,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6366F1),
+                                backgroundColor: const Color.fromARGB(255, 7, 9, 85),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
