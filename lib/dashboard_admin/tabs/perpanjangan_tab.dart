@@ -123,7 +123,7 @@ class PerpanjanganTab extends StatelessWidget {
             rows: snap.data!.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
 
-              final nim = data['id_user']?.toString() ?? "-";
+              final id_user = data['id_user']?.toString() ?? "-";
               final status = data['status']?.toString() ?? "-";
 
               DateTime tanggal = DateTime.now();
@@ -132,11 +132,11 @@ class PerpanjanganTab extends StatelessWidget {
               }
 
               return DataRow(cells: [
-                DataCell(Text(nim)),
+                DataCell(Text(id_user)),
 
                 DataCell(
                   FutureBuilder<String>(
-                    future: _getField('users', 'nim', nim, 'nama'),
+                    future: _getField('users', 'id_user', id_user, 'nama'),
                     builder: (_, s) => Text(s.data ?? "..."),
                   ),
                 ),
