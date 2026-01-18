@@ -6,12 +6,12 @@ class PerpanjanganTab extends StatelessWidget {
   const PerpanjanganTab({super.key});
 
   // ================= GET NAMA USER =================
-  Future<String> _getNamaUser(String nim) async {
-    if (nim.isEmpty) return "-";
+  Future<String> _getNamaUser(String idUser) async {
+    if (idUser.isEmpty) return "-";
 
     final q = await FirebaseFirestore.instance
         .collection('users')
-        .where('nim', isEqualTo: nim)
+        .where('id_user', isEqualTo: idUser)
         .limit(1)
         .get();
 
@@ -78,7 +78,7 @@ class PerpanjanganTab extends StatelessWidget {
             rows: snap.data!.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
 
-              final nim = data['id_user']?.toString() ?? "-";
+              final idUser = data['id_user']?.toString() ?? "-";
               final idPinjam = data['id_pinjam']?.toString() ?? "";
               final status = data['status']?.toString() ?? "-";
 
@@ -89,11 +89,11 @@ class PerpanjanganTab extends StatelessWidget {
               }
 
               return DataRow(cells: [
-                DataCell(Text(id_user)),
+                DataCell(Text(idUser)),
 
                 DataCell(
                   FutureBuilder<String>(
-                    future: _getNamaUser(nim),
+                    future: _getNamaUser(idUser),
                     builder: (_, s) => Text(s.data ?? "..."),
                   ),
                 ),
