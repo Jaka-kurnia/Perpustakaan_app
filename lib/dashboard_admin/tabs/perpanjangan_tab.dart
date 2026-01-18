@@ -89,7 +89,7 @@ class PerpanjanganTab extends StatelessWidget {
               }
 
               return DataRow(cells: [
-                DataCell(Text(nim)),
+                DataCell(Text(id_user)),
 
                 DataCell(
                   FutureBuilder<String>(

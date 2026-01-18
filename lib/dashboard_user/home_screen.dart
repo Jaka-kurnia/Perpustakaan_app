@@ -6,8 +6,7 @@ import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/peminjaman_saya.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
-import 'package:perpustakaan_app/dashboard_user/tabs/perpanjangan_user_tab.dart';
-
+import 'package:perpustakaan_app/dashboard_user/tabs/kunjungan_user_tab.dart';
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/menu_chip.dart';
@@ -81,6 +80,18 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Widget getActiveTabContent() {
+    switch (activeMenu) {
+      case "Peminjaman Saya": return const PeminjamanSayaTab();
+      case "Denda": return const DendaTab();
+      case "Surat Bebas": return const SuratBebasTab();
+      case "Pinjam Buku": return PinjamBukuTab(nimUser: idUser); // idUser dikirim sebagai NIM
+      case "Kunjungan": return KunjunganUserTab();
+      case "Katalog": return const KatalogTab();
+      default: return const SizedBox();
+    }
   }
 
   @override
@@ -272,24 +283,15 @@ class _HomeScreenState extends State<HomeScreen> {
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
-        children: [
-          "Katalog",
-          "Pinjam Buku",
-          "Peminjaman Saya",
-          "Perpanjangan",
-          "Denda",
-          "Surat Bebas",
-        ]
-            .map(
-              (menu) => Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: MenuChip(
-              title: menu,
-              isActive: activeMenu == menu,
-              onTap: () => setState(() => activeMenu = menu),
-            ),
-          ),
-        )
+        children: ["Katalog", "Pinjam Buku", "Peminjaman Saya", "Denda", "Kunjungan", "Surat Bebas"]
+            .map((menu) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: MenuChip(
+                    title: menu,
+                    isActive: activeMenu == menu,
+                    onTap: () => setState(() => activeMenu = menu),
+                  ),
+                ))
             .toList(),
       ),
     );
