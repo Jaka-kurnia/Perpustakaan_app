@@ -7,6 +7,7 @@ import 'package:perpustakaan_app/dashboard_user/tabs/peminjaman_saya.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/kunjungan_user_tab.dart';
+import 'package:perpustakaan_app/dashboard_user/tabs/perpanjangan_user_tab.dart';
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/menu_chip.dart';
@@ -82,18 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget getActiveTabContent() {
-    switch (activeMenu) {
-      case "Peminjaman Saya": return const PeminjamanSayaTab();
-      case "Denda": return const DendaTab();
-      case "Surat Bebas": return const SuratBebasTab();
-      case "Pinjam Buku": return PinjamBukuTab(nimUser: idUser); // idUser dikirim sebagai NIM
-      case "Kunjungan": return KunjunganUserTab();
-      case "Katalog": return const KatalogTab();
-      default: return const SizedBox();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // ================= AMBIL DATA LOGIN =================
@@ -119,6 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return PerpanjanganUserTab(nimUser: idUser);
         case "Denda":
           return const DendaTab();
+        case "Kunjungan":
+          return const KunjunganUserTab();
         case "Surat Bebas":
           return const SuratBebasTab();
         default:
