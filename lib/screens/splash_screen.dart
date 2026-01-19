@@ -35,6 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     });
   }
+  // Komen
 
   @override
   void dispose() {
