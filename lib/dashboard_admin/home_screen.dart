@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (activeMenu) {
       case "Buku": return const BukuTab();
       case "Peminjaman": return const PeminjamanTab();
-      case "Perpanjangan": return const PerpanjanganTab();
+      case "Perpanjangan": return const AdminPerpanjanganPage();
       case "Denda": return const DendaTab();
       case "Kunjungan": return const KunjunganTab();
       default: return const SizedBox();
