@@ -6,8 +6,8 @@ import 'package:perpustakaan_app/dashboard_user/tabs/pinjam_buku.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/peminjaman_saya.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/denda.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/surat_bebas.dart';
+import 'package:perpustakaan_app/dashboard_user/tabs/kunjungan_user_tab.dart';
 import 'package:perpustakaan_app/dashboard_user/tabs/perpanjangan_user_tab.dart';
-
 import 'package:perpustakaan_app/routes/app_routes.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/menu_chip.dart';
@@ -108,6 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return PerpanjanganUserTab(nimUser: idUser);
         case "Denda":
           return const DendaTab();
+        case "Kunjungan":
+          return const KunjunganUserTab();
         case "Surat Bebas":
           return const SuratBebasTab();
         default:
@@ -272,24 +274,15 @@ class _HomeScreenState extends State<HomeScreen> {
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       child: Row(
-        children: [
-          "Katalog",
-          "Pinjam Buku",
-          "Peminjaman Saya",
-          "Perpanjangan",
-          "Denda",
-          "Surat Bebas",
-        ]
-            .map(
-              (menu) => Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: MenuChip(
-              title: menu,
-              isActive: activeMenu == menu,
-              onTap: () => setState(() => activeMenu = menu),
-            ),
-          ),
-        )
+        children: ["Katalog", "Pinjam Buku", "Peminjaman Saya", "Denda", "Kunjungan", "Surat Bebas"]
+            .map((menu) => Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: MenuChip(
+                    title: menu,
+                    isActive: activeMenu == menu,
+                    onTap: () => setState(() => activeMenu = menu),
+                  ),
+                ))
             .toList(),
       ),
     );

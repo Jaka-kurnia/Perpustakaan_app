@@ -13,6 +13,28 @@ class _KunjunganTabState extends State<KunjunganTab> {
   bool isModeKunjungan = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadKunjunganMode();
+  }
+
+  void _loadKunjunganMode() {
+    // Baca state dari Firestore
+    FirebaseFirestore.instance
+        .collection('settings')
+        .doc('kunjungan')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          isModeKunjungan = data['is_active'] ?? false;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
@@ -54,10 +76,19 @@ class _KunjunganTabState extends State<KunjunganTab> {
                   const SizedBox(width: 8),
                   Switch(
                     value: isModeKunjungan,
-                    onChanged: (value) {
+                    onChanged: (value) async {
                       setState(() {
                         isModeKunjungan = value;
                       });
+                      
+                      // Simpan state ke Firestore
+                      await FirebaseFirestore.instance
+                          .collection('settings')
+                          .doc('kunjungan')
+                          .set({
+                            'is_active': value,
+                            'updated_at': Timestamp.now(),
+                          });
                     },
                     activeColor: Colors.black,
                   ),
