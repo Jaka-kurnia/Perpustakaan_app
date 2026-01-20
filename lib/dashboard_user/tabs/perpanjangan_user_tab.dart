@@ -15,6 +15,28 @@ class PerpanjanganUserTab extends StatefulWidget {
 }
 
 class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
+
+  /// ===============================
+  /// CONVERTER TANGGAL ANTI ERROR
+  /// ===============================
+  DateTime _parseTanggal(dynamic value) {
+    if (value == null) return DateTime.now();
+
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return DateTime.now();
+      }
+    }
+
+    return DateTime.now();
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -24,6 +46,7 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
           .where('status', isEqualTo: 'dipinjam')
           .snapshots(),
       builder: (context, snapshot) {
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -36,13 +59,13 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
           children: snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
 
-            final String idPinjam = data['id_pinjam'];
-            final String kodeBuku = data['kode_buku'];
+            final String idPinjam = (data['id_pinjam'] ?? doc.id).toString();
+            final String kodeBuku = (data['kode_buku'] ?? '-').toString();
 
             final DateTime tanggalPinjam =
-            (data['tanggal_pinjam'] as Timestamp).toDate();
+            _parseTanggal(data['tanggal_pinjam']);
             final DateTime jatuhTempo =
-            (data['tanggal_jatuh_tempo'] as Timestamp).toDate();
+            _parseTanggal(data['tanggal_jatuh_tempo']);
 
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -54,7 +77,10 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    /// JUDUL BUKU
+
+                    /// ===============================
+                    /// JUDUL BUKU (AMAN)
+                    /// ===============================
                     FutureBuilder<QuerySnapshot>(
                       future: FirebaseFirestore.instance
                           .collection('books')
@@ -67,47 +93,59 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
                           return const Text(
                             "Judul tidak ditemukan",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                              fontWeight: FontWeight.bold,
+                            ),
                           );
                         }
 
                         return Text(
-                          bookSnap.data!.docs.first['judul'],
+                          (bookSnap.data!.docs.first['judul'] ?? 'Tanpa Judul')
+                              .toString(),
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         );
                       },
                     ),
 
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Text("Kode Buku : $kodeBuku"),
                     Text(
-                        "Tanggal Pinjam : ${DateFormat('dd-MM-yyyy').format(tanggalPinjam)}"),
+                      "Tanggal Pinjam : ${DateFormat('dd-MM-yyyy').format(tanggalPinjam)}",
+                    ),
                     Text(
-                        "Jatuh Tempo : ${DateFormat('dd-MM-yyyy').format(jatuhTempo)}"),
+                      "Jatuh Tempo : ${DateFormat('dd-MM-yyyy').format(jatuhTempo)}",
+                    ),
 
                     const SizedBox(height: 12),
 
-                    /// CEK STATUS PERPANJANGAN
+                    /// ===============================
+                    /// STATUS PERPANJANGAN
+                    /// ===============================
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
                           .collection('perpanjangan')
                           .where('id_pinjam', isEqualTo: idPinjam)
-                          .where('status', isEqualTo: 'pending')
                           .snapshots(),
                       builder: (_, perpanjanganSnap) {
-                        final bool sedangDiajukan =
-                            perpanjanganSnap.hasData &&
-                                perpanjanganSnap
-                                    .data!.docs.isNotEmpty;
+                        if (perpanjanganSnap.hasData &&
+                            perpanjanganSnap.data!.docs.isNotEmpty) {
 
-                        if (sedangDiajukan) {
-                          return const Text(
-                            "Sedang diajukan",
+                          final status = perpanjanganSnap
+                              .data!.docs.first['status']
+                              .toString();
+
+                          Color color = Colors.orange;
+                          if (status == 'disetujui') color = Colors.green;
+                          if (status == 'ditolak') color = Colors.red;
+
+                          return Text(
+                            "Status Perpanjangan : $status",
                             style: TextStyle(
-                                color: Colors.orange,
-                                fontWeight: FontWeight.w600),
+                              color: color,
+                              fontWeight: FontWeight.w600,
+                            ),
                           );
                         }
 
@@ -116,8 +154,7 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
                           child: ElevatedButton(
                             onPressed: () =>
                                 _ajukanPerpanjangan(idPinjam),
-                            child:
-                            const Text("Ajukan Perpanjangan"),
+                            child: const Text("Ajukan Perpanjangan"),
                           ),
                         );
                       },
@@ -132,7 +169,9 @@ class _PerpanjanganUserTabState extends State<PerpanjanganUserTab> {
     );
   }
 
-  /// SUBMIT PERPANJANGAN
+  /// ===============================
+  /// SUBMIT PERPANJANGAN (AMAN)
+  /// ===============================
   Future<void> _ajukanPerpanjangan(String idPinjam) async {
     await FirebaseFirestore.instance.collection('perpanjangan').add({
       'id_user': widget.nimUser,
